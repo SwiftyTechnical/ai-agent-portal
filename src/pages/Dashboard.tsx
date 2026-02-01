@@ -308,8 +308,8 @@ export function Dashboard() {
                     </p>
                   </div>
                 </div>
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${documentTypeColors[doc.document_type]}`}>
-                  {documentTypeLabels[doc.document_type]}
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${doc.document_type ? documentTypeColors[doc.document_type] : 'bg-gray-100 text-gray-800'}`}>
+                  {doc.document_type ? documentTypeLabels[doc.document_type] : 'Unknown'}
                 </span>
               </Link>
             ))

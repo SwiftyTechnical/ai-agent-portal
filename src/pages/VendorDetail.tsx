@@ -25,7 +25,7 @@ import { useDocuments } from '../hooks/useDocuments';
 import { useAuth } from '../contexts/AuthContext';
 import { AssessmentCategoryCard } from '../components/AssessmentCategoryCard';
 import { VendorAssessmentHistory } from '../components/VendorAssessmentHistory';
-import { getRiskLevel, getRiskLevelColor, getScoreColor } from '../lib/vendorAssessment';
+import { getRiskLevel, getRiskLevelColor } from '../lib/vendorAssessment';
 
 export function VendorDetail() {
   const { vendorId } = useParams<{ vendorId: string }>();
