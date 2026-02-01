@@ -6,7 +6,7 @@ import { AssetForm } from '../components/AssetForm';
 import type { Asset } from '../types/database';
 
 export function AssetList() {
-  const { assets, loading, error, deleteAsset } = useAssets();
+  const { assets, loading, error, deleteAsset, refetch } = useAssets();
   const { canEdit } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [locationFilter, setLocationFilter] = useState<string>('all');
@@ -227,6 +227,7 @@ export function AssetList() {
         <AssetForm
           asset={editingAsset}
           onClose={handleCloseForm}
+          onSave={refetch}
         />
       )}
     </div>

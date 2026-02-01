@@ -19,6 +19,9 @@ export function VendorForm({ vendor, onClose, onSave }: VendorFormProps) {
   const [formData, setFormData] = useState({
     company_name: '',
     website_url: '',
+    contact_name: '',
+    contact_phone: '',
+    contact_email: '',
     contract_document_id: '',
     notes: '',
   });
@@ -28,6 +31,9 @@ export function VendorForm({ vendor, onClose, onSave }: VendorFormProps) {
       setFormData({
         company_name: vendor.company_name,
         website_url: vendor.website_url || '',
+        contact_name: vendor.contact_name || '',
+        contact_phone: vendor.contact_phone || '',
+        contact_email: vendor.contact_email || '',
         contract_document_id: vendor.contract_document_id || '',
         notes: vendor.notes || '',
       });
@@ -35,6 +41,9 @@ export function VendorForm({ vendor, onClose, onSave }: VendorFormProps) {
       setFormData({
         company_name: '',
         website_url: '',
+        contact_name: '',
+        contact_phone: '',
+        contact_email: '',
         contract_document_id: '',
         notes: '',
       });
@@ -57,6 +66,9 @@ export function VendorForm({ vendor, onClose, onSave }: VendorFormProps) {
         const success = await updateVendor(vendor.id, {
           company_name: formData.company_name.trim(),
           website_url: formData.website_url.trim() || null,
+          contact_name: formData.contact_name.trim() || null,
+          contact_phone: formData.contact_phone.trim() || null,
+          contact_email: formData.contact_email.trim() || null,
           contract_document_id: formData.contract_document_id || null,
           notes: formData.notes.trim() || null,
         });
@@ -72,6 +84,9 @@ export function VendorForm({ vendor, onClose, onSave }: VendorFormProps) {
         const result = await createVendor({
           company_name: formData.company_name.trim(),
           website_url: formData.website_url.trim() || undefined,
+          contact_name: formData.contact_name.trim() || undefined,
+          contact_phone: formData.contact_phone.trim() || undefined,
+          contact_email: formData.contact_email.trim() || undefined,
           contract_document_id: formData.contract_document_id || undefined,
           notes: formData.notes.trim() || undefined,
         });
@@ -147,6 +162,52 @@ export function VendorForm({ vendor, onClose, onSave }: VendorFormProps) {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="https://www.example.com"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Main Contact Name
+              </label>
+              <input
+                type="text"
+                value={formData.contact_name}
+                onChange={(e) =>
+                  setFormData({ ...formData, contact_name: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="e.g., John Smith"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Contact Phone
+                </label>
+                <input
+                  type="tel"
+                  value={formData.contact_phone}
+                  onChange={(e) =>
+                    setFormData({ ...formData, contact_phone: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="+1 (555) 123-4567"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Contact Email
+                </label>
+                <input
+                  type="email"
+                  value={formData.contact_email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, contact_email: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="contact@example.com"
+                />
+              </div>
             </div>
 
             <div>

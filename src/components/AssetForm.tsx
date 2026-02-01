@@ -7,9 +7,10 @@ import type { Asset } from '../types/database';
 interface AssetFormProps {
   asset: Asset | null;
   onClose: () => void;
+  onSave?: () => void;
 }
 
-export function AssetForm({ asset, onClose }: AssetFormProps) {
+export function AssetForm({ asset, onClose, onSave }: AssetFormProps) {
   const { createAsset, updateAsset, getNextAssetNumber } = useAssets();
   const { users } = useUsers();
   const [saving, setSaving] = useState(false);
@@ -75,6 +76,7 @@ export function AssetForm({ asset, onClose }: AssetFormProps) {
       }
 
       if (success) {
+        onSave?.();
         onClose();
       } else {
         setError('Failed to save asset');

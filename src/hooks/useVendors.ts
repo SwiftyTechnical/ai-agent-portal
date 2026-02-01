@@ -48,6 +48,9 @@ export function useVendors() {
   const createVendor = async (vendor: {
     company_name: string;
     website_url?: string;
+    contact_name?: string;
+    contact_phone?: string;
+    contact_email?: string;
     contract_document_id?: string;
     notes?: string;
   }): Promise<{ success: boolean; vendorId?: string }> => {
@@ -65,6 +68,9 @@ export function useVendors() {
         .insert({
           company_name: vendor.company_name,
           website_url: vendor.website_url || null,
+          contact_name: vendor.contact_name || null,
+          contact_phone: vendor.contact_phone || null,
+          contact_email: vendor.contact_email || null,
           contract_document_id: vendor.contract_document_id || null,
           notes: vendor.notes || null,
           status: 'pending' as VendorStatus,
@@ -87,6 +93,9 @@ export function useVendors() {
     updates: Partial<{
       company_name: string;
       website_url: string | null;
+      contact_name: string | null;
+      contact_phone: string | null;
+      contact_email: string | null;
       contract_document_id: string | null;
       notes: string | null;
       status: VendorStatus;
@@ -356,6 +365,9 @@ export function useVendor(vendorId: string) {
     updates: Partial<{
       company_name: string;
       website_url: string | null;
+      contact_name: string | null;
+      contact_phone: string | null;
+      contact_email: string | null;
       contract_document_id: string | null;
       notes: string | null;
       status: VendorStatus;

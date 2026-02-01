@@ -478,6 +478,9 @@ CREATE TABLE IF NOT EXISTS vendors (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   company_name VARCHAR(255) NOT NULL,
   website_url VARCHAR(500),
+  contact_name VARCHAR(255),
+  contact_phone VARCHAR(50),
+  contact_email VARCHAR(255),
   contract_document_id UUID REFERENCES documents(id) ON DELETE SET NULL,
   status VARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'assessed', 'approved', 'rejected', 'expired')),
 

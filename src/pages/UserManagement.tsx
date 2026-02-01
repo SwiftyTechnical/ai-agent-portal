@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, Edit2, Save, X, Shield } from 'lucide-react';
+import { Users, Edit2, Save, X, Shield, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth, UserRole } from '../contexts/AuthContext';
 import type { User } from '../types/database';
@@ -27,6 +27,7 @@ export function UserManagement() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editRole, setEditRole] = useState<UserRole>('viewer');
   const [editName, setEditName] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -65,6 +66,18 @@ export function UserManagement() {
     if (!error) {
       await fetchUsers();
       cancelEditing();
+    }
+  };
+
+  const deleteUser = async (userId: string) => {
+    const { error } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', userId);
+
+    if (!error) {
+      await fetchUsers();
+      setDeletingId(null);
     }
   };
 
@@ -181,7 +194,23 @@ export function UserManagement() {
                     {new Date(user.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                    {editingId === user.id ? (
+                    {deletingId === user.id ? (
+                      <div className="flex items-center justify-end space-x-2">
+                        <span className="text-xs text-gray-500 mr-2">Delete?</span>
+                        <button
+                          onClick={() => deleteUser(user.id)}
+                          className="px-2 py-1 text-xs text-white bg-red-600 hover:bg-red-700 rounded"
+                        >
+                          Yes
+                        </button>
+                        <button
+                          onClick={() => setDeletingId(null)}
+                          className="px-2 py-1 text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 rounded"
+                        >
+                          No
+                        </button>
+                      </div>
+                    ) : editingId === user.id ? (
                       <div className="flex items-center justify-end space-x-2">
                         <button
                           onClick={() => saveUser(user.id)}
@@ -197,12 +226,20 @@ export function UserManagement() {
                         </button>
                       </div>
                     ) : (
-                      <button
-                        onClick={() => startEditing(user)}
-                        className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center justify-end space-x-2">
+                        <button
+                          onClick={() => startEditing(user)}
+                          className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setDeletingId(user.id)}
+                          className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>

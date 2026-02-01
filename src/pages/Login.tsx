@@ -35,8 +35,8 @@ export function Login() {
             <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mx-auto mb-4">
               <span className="text-white font-bold text-xl">SG</span>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900">Policy Portal</h2>
-            <p className="text-gray-600 mt-1">Sign in to access IT policies</p>
+            <h2 className="text-2xl font-bold text-gray-900">Company Portal</h2>
+            <p className="text-gray-600 mt-1">Sign in to your account</p>
           </div>
 
           {/* Error Message */}

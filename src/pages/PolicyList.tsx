@@ -136,7 +136,11 @@ export function PolicyList() {
                     {policy.major_version || 1}.{policy.minor_version || 0}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(policy.updated_at).toLocaleDateString()}
+                    {new Date(
+                      policy.workflow_status === 'approved' && policy.approved_at
+                        ? policy.approved_at
+                        : policy.updated_at
+                    ).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <Link

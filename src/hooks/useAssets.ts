@@ -121,7 +121,7 @@ export function useAssets() {
   };
 
   // Generate next asset number
-  const getNextAssetNumber = (): string => {
+  const getNextAssetNumber = useCallback((): string => {
     if (assets.length === 0) return 'SG-001';
 
     const numbers = assets
@@ -133,7 +133,7 @@ export function useAssets() {
 
     const maxNumber = Math.max(...numbers, 0);
     return `SG-${String(maxNumber + 1).padStart(3, '0')}`;
-  };
+  }, [assets]);
 
   return {
     assets,

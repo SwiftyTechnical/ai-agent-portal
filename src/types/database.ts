@@ -158,6 +158,9 @@ export interface Vendor {
   id: string;
   company_name: string;
   website_url: string | null;
+  contact_name: string | null;
+  contact_phone: string | null;
+  contact_email: string | null;
   contract_document_id: string | null;
   status: VendorStatus;
 
