@@ -88,18 +88,6 @@ export function Login() {
               <span>{loading ? 'Signing in...' : 'Sign in'}</span>
             </button>
           </form>
-
-          {/* Demo Accounts */}
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <p className="text-xs text-gray-500 text-center mb-3">Demo accounts (create in Supabase Auth):</p>
-            <div className="text-xs text-gray-600 space-y-1">
-              <p><strong>Admin:</strong> admin@swiftyglobal.com</p>
-              <p><strong>Editor:</strong> editor@swiftyglobal.com</p>
-              <p><strong>Reviewer:</strong> reviewer@swiftyglobal.com</p>
-              <p><strong>Approver:</strong> approver@swiftyglobal.com</p>
-              <p><strong>Viewer:</strong> viewer@swiftyglobal.com</p>
-            </div>
-          </div>
         </div>
       </div>
     </div>
