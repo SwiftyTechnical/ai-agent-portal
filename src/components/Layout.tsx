@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { FileText, Home, Users, LogOut, ChevronDown, Monitor, FolderOpen, ShieldCheck, Menu, X, Cloud } from 'lucide-react';
+import { FileText, Home, Users, LogOut, ChevronDown, Monitor, FolderOpen, ShieldCheck, Menu, X, Cloud, Shield } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useAuth, UserRole } from '../contexts/AuthContext';
 
@@ -9,6 +9,7 @@ const roleColors: Record<UserRole, string> = {
   editor: 'bg-blue-100 text-blue-700',
   reviewer: 'bg-yellow-100 text-yellow-700',
   approver: 'bg-green-100 text-green-700',
+  auditor: 'bg-orange-100 text-orange-700',
 };
 
 // Helper to get initials from name
@@ -146,6 +147,16 @@ export function Layout() {
                       <span>Manage Users</span>
                     </button>
                   )}
+                  <button
+                    onClick={() => {
+                      navigate('/security');
+                      setShowUserMenu(false);
+                    }}
+                    className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    <Shield className="w-4 h-4" />
+                    <span>Security</span>
+                  </button>
                   <button
                     onClick={handleSignOut}
                     className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"

@@ -1,9 +1,12 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { FileText, Search, Plus, Eye } from 'lucide-react';
+import { FileText, Search, Plus, Eye, Download } from 'lucide-react';
 import { useState } from 'react';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 import { usePolicies } from '../hooks/usePolicies';
 import { useAuth } from '../contexts/AuthContext';
 import { StatusBadge } from '../components/StatusBadge';
+import { generatePolicyPDFBlob } from '../utils/pdfGenerator';
 import type { WorkflowStatus } from '../types/database';
 
 export function PolicyList() {
@@ -13,6 +16,30 @@ export function PolicyList() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<WorkflowStatus | 'all'>('all');
   const [creating, setCreating] = useState(false);
+  const [downloadingAll, setDownloadingAll] = useState(false);
+
+  const handleDownloadAll = async () => {
+    if (policies.length === 0) return;
+
+    setDownloadingAll(true);
+    try {
+      const zip = new JSZip();
+
+      for (const policy of policies) {
+        const { blob, filename } = generatePolicyPDFBlob(policy);
+        zip.file(filename, blob);
+      }
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const date = new Date().toISOString().split('T')[0];
+      saveAs(zipBlob, `all_policies_${date}.zip`);
+    } catch (err) {
+      console.error('Failed to download all policies:', err);
+      alert('Failed to generate PDFs. Please try again.');
+    } finally {
+      setDownloadingAll(false);
+    }
+  };
 
   const filteredPolicies = policies.filter((policy) => {
     const matchesSearch = policy.title.toLowerCase().includes(searchQuery.toLowerCase());
@@ -45,23 +72,35 @@ export function PolicyList() {
             Browse and manage all IT Policies
           </p>
         </div>
-        {canEdit && (
+        <div className="flex items-center space-x-2">
           <button
-            onClick={async () => {
-              setCreating(true);
-              const slug = await createPolicy();
-              setCreating(false);
-              if (slug) {
-                navigate(`/policies/${slug}`);
-              }
-            }}
-            disabled={creating}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+            type="button"
+            onClick={handleDownloadAll}
+            disabled={downloadingAll || policies.length === 0}
+            className="flex items-center space-x-2 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 cursor-pointer"
+            title="Download all policies as PDF"
           >
-            <Plus className="w-4 h-4" />
-            <span>{creating ? 'Creating...' : 'New Policy'}</span>
+            <Download className="w-4 h-4" />
+            <span>{downloadingAll ? 'Downloading...' : 'Download All'}</span>
           </button>
-        )}
+          {canEdit && (
+            <button
+              onClick={async () => {
+                setCreating(true);
+                const slug = await createPolicy();
+                setCreating(false);
+                if (slug) {
+                  navigate(`/policies/${slug}`);
+                }
+              }}
+              disabled={creating}
+              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+              <Plus className="w-4 h-4" />
+              <span>{creating ? 'Creating...' : 'New Policy'}</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filters */}

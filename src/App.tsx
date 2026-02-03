@@ -11,9 +11,10 @@ import { VendorDetail } from './pages/VendorDetail';
 import { AWSEvidence } from './pages/AWSEvidence';
 import { Login } from './pages/Login';
 import { UserManagement } from './pages/UserManagement';
+import { SecuritySettings } from './pages/SecuritySettings';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, mfaRequired, mfaEnrollmentRequired, mfaCheckPending } = useAuth();
 
   if (loading) {
     return (
@@ -27,11 +28,16 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />;
   }
 
+  // If MFA is required, enrollment is needed, or MFA check is pending, redirect to login
+  if (mfaRequired || mfaEnrollmentRequired || mfaCheckPending) {
+    return <Navigate to="/login" replace />;
+  }
+
   return <>{children}</>;
 }
 
 function AppRoutes() {
-  const { user, loading } = useAuth();
+  const { user, loading, mfaRequired, mfaEnrollmentRequired, mfaCheckPending } = useAuth();
 
   if (loading) {
     return (
@@ -41,9 +47,12 @@ function AppRoutes() {
     );
   }
 
+  // Only redirect from login to home if user is fully authenticated (MFA complete)
+  const isFullyAuthenticated = user && !mfaRequired && !mfaEnrollmentRequired && !mfaCheckPending;
+
   return (
     <Routes>
-      <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
+      <Route path="/login" element={isFullyAuthenticated ? <Navigate to="/" replace /> : <Login />} />
       <Route
         path="/"
         element={
@@ -61,6 +70,7 @@ function AppRoutes() {
         <Route path="vendors/:vendorId" element={<VendorDetail />} />
         <Route path="aws-evidence" element={<AWSEvidence />} />
         <Route path="users" element={<UserManagement />} />
+        <Route path="security" element={<SecuritySettings />} />
       </Route>
     </Routes>
   );

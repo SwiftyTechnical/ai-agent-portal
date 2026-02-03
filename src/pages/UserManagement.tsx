@@ -10,6 +10,7 @@ const roleColors: Record<UserRole, string> = {
   editor: 'bg-blue-100 text-blue-800',
   reviewer: 'bg-yellow-100 text-yellow-800',
   approver: 'bg-green-100 text-green-800',
+  auditor: 'bg-orange-100 text-orange-800',
 };
 
 const roleDescriptions: Record<UserRole, string> = {
@@ -18,6 +19,7 @@ const roleDescriptions: Record<UserRole, string> = {
   editor: 'Can view and edit policies',
   reviewer: 'Can review submitted policies',
   approver: 'Can approve reviewed policies',
+  auditor: 'View-only with download access',
 };
 
 export function UserManagement() {
@@ -109,7 +111,7 @@ export function UserManagement() {
       {/* Role Legend */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <h3 className="text-sm font-medium text-gray-700 mb-3">Role Permissions</h3>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {(Object.keys(roleDescriptions) as UserRole[]).map((role) => (
             <div key={role} className="text-center">
               <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${roleColors[role]}`}>
@@ -183,6 +185,7 @@ export function UserManagement() {
                         <option value="editor">Editor</option>
                         <option value="reviewer">Reviewer</option>
                         <option value="approver">Approver</option>
+                        <option value="auditor">Auditor</option>
                       </select>
                     ) : (
                       <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${roleColors[user.role as UserRole]}`}>

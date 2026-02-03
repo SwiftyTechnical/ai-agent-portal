@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Edit2, History, Lock, Brain, Pencil, Check, X, FileEdit, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, Edit2, History, Lock, Brain, Pencil, Check, X, FileEdit, CheckCircle, XCircle, Download } from 'lucide-react';
 import { usePolicy } from '../hooks/usePolicies';
 import { useAuth } from '../contexts/AuthContext';
 import { useDocumentMarkup } from '../hooks/useDocumentMarkup';
@@ -10,6 +10,7 @@ import { VersionHistory } from '../components/VersionHistory';
 import { WorkflowPanel } from '../components/WorkflowPanel';
 import { StatusBadge } from '../components/StatusBadge';
 import { DocumentReview } from '../components/DocumentReview';
+import { generatePolicyPDF } from '../utils/pdfGenerator';
 
 export function PolicyDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -170,6 +171,22 @@ export function PolicyDetail() {
           </div>
         </div>
         <div className="flex items-center space-x-2">
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                generatePolicyPDF(policy);
+              } catch (err) {
+                console.error('PDF generation failed:', err);
+                alert('Failed to generate PDF. Please try again.');
+              }
+            }}
+            className="flex items-center space-x-2 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+            title="Download PDF"
+          >
+            <Download className="w-4 h-4" />
+            <span>PDF</span>
+          </button>
           {hasMarkupSuggestions && !isEditing && (
             <button
               onClick={() => setMarkupMode(!markupMode)}

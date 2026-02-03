@@ -39,7 +39,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'reviewer' | 'approver' | 'editor' | 'viewer';
+  role: 'admin' | 'reviewer' | 'approver' | 'editor' | 'viewer' | 'auditor';
   created_at: string;
 }
 

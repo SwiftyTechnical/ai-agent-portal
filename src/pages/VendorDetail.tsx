@@ -19,6 +19,9 @@ import {
   ChevronUp,
   ExternalLink,
   Save,
+  User,
+  Phone,
+  Mail,
 } from 'lucide-react';
 import { useVendor, vendorStatusLabels, vendorStatusColors } from '../hooks/useVendors';
 import { useDocuments } from '../hooks/useDocuments';
@@ -432,6 +435,45 @@ export function VendorDetail() {
                       </span>
                       <ExternalLink className="w-3 h-3" />
                     </a>
+                  </dd>
+                </div>
+              )}
+
+              {/* Main Contact Details */}
+              {(vendor.contact_name || vendor.contact_email || vendor.contact_phone) && (
+                <div className="pt-2 border-t border-gray-100">
+                  <dt className="text-xs font-medium text-gray-500 uppercase mb-2">
+                    Main Contact
+                  </dt>
+                  <dd className="space-y-1.5">
+                    {vendor.contact_name && (
+                      <div className="flex items-center space-x-2 text-sm text-gray-700">
+                        <User className="w-4 h-4 text-gray-400" />
+                        <span>{vendor.contact_name}</span>
+                      </div>
+                    )}
+                    {vendor.contact_email && (
+                      <div className="flex items-center space-x-2 text-sm">
+                        <Mail className="w-4 h-4 text-gray-400" />
+                        <a
+                          href={`mailto:${vendor.contact_email}`}
+                          className="text-blue-600 hover:text-blue-700"
+                        >
+                          {vendor.contact_email}
+                        </a>
+                      </div>
+                    )}
+                    {vendor.contact_phone && (
+                      <div className="flex items-center space-x-2 text-sm">
+                        <Phone className="w-4 h-4 text-gray-400" />
+                        <a
+                          href={`tel:${vendor.contact_phone}`}
+                          className="text-blue-600 hover:text-blue-700"
+                        >
+                          {vendor.contact_phone}
+                        </a>
+                      </div>
+                    )}
                   </dd>
                 </div>
               )}
