@@ -50,12 +50,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
   const [enrollmentData, setEnrollmentData] = useState<MfaEnrollmentData | null>(null);
 
-  // Ref to track if MFA operations should be cancelled
-  const mfaCancelledRef = useRef(false);
+  // Tracks whether we've already handled the initial auth check
+  const mfaHandledRef = useRef(false);
+  // Tracks whether user explicitly signed out / cancelled
+  const signedOutRef = useRef(false);
 
   // Helper to clear all Supabase cached data from localStorage
   const clearSupabaseCache = () => {
-    // Clear all Supabase-related localStorage items
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
@@ -63,10 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         keysToRemove.push(key);
       }
     }
-    keysToRemove.forEach(key => {
-      console.log('Clearing localStorage key:', key);
-      localStorage.removeItem(key);
-    });
+    keysToRemove.forEach(key => localStorage.removeItem(key));
   };
 
   // Helper to reset all auth state
@@ -95,7 +93,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Async profile fetch - updates role after login
   const fetchUserProfileAsync = async (email: string) => {
     try {
-      // Race between query and timeout
       const result = await Promise.race([
         supabase.from('users').select('*').eq('email', email).single(),
         new Promise<null>((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000))
@@ -115,28 +112,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Check MFA status and handle enrollment/challenge
-  const checkMfaStatus = async () => {
+  // Handle MFA for a session that is at aal1 (not yet MFA-verified)
+  const handleMfaForSession = async () => {
+    if (signedOutRef.current) return;
+
     setMfaCheckPending(true);
     try {
-      // Check if cancelled before starting
-      if (mfaCancelledRef.current) {
-        console.log('MFA check cancelled before start');
-        return;
-      }
-
-      console.log('Checking MFA status...');
       const { data: factorsData, error: factorsError } = await supabase.auth.mfa.listFactors();
 
-      // Check if cancelled after listFactors
-      if (mfaCancelledRef.current) {
-        console.log('MFA check cancelled after listFactors');
-        return;
-      }
+      if (signedOutRef.current) return;
 
       if (factorsError) {
         console.error('Error listing MFA factors:', factorsError);
-        setMfaCheckPending(false);
+        // Can't determine MFA status - sign out for safety
+        await forceSignOut();
         return;
       }
 
@@ -144,18 +133,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const verifiedFactors = totpFactors.filter(f => f.status === 'verified');
       const unverifiedFactors = totpFactors.filter(f => (f.status as string) !== 'verified');
 
-      console.log('MFA factors found:', totpFactors.length, 'verified:', verifiedFactors.length, 'unverified:', unverifiedFactors.length);
+      console.log('MFA factors:', totpFactors.length, 'verified:', verifiedFactors.length);
 
-      if (verifiedFactors.length === 0) {
-        // No verified MFA - need to enroll or complete enrollment
-
-        // First, clean up any unverified factors to avoid conflicts
+      if (verifiedFactors.length > 0) {
+        // User has MFA enrolled - show the code entry screen immediately
+        if (!signedOutRef.current) {
+          setMfaRequired(true);
+          setMfaFactorId(verifiedFactors[0].id);
+          setMfaCheckPending(false);
+        }
+      } else {
+        // No verified MFA - need to enroll
+        // Clean up unverified factors first
         for (const factor of unverifiedFactors) {
-          if (mfaCancelledRef.current) {
-            console.log('MFA check cancelled during unenroll loop');
-            return;
-          }
-          console.log('Removing unverified factor:', factor.id);
+          if (signedOutRef.current) return;
           try {
             await supabase.auth.mfa.unenroll({ factorId: factor.id });
           } catch (err) {
@@ -163,54 +154,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
 
-        // Check if cancelled before enrollment
-        if (mfaCancelledRef.current) {
-          console.log('MFA check cancelled before enrollment');
-          return;
-        }
+        if (signedOutRef.current) return;
 
-        // Now start fresh enrollment
-        console.log('No verified MFA factors, starting enrollment');
+        // Start fresh enrollment
         await startMfaEnrollment();
-      } else {
-        // MFA enrolled - require verification
-        if (!mfaCancelledRef.current) {
-          console.log('MFA factor found, requiring verification');
-          setMfaRequired(true);
-          setMfaFactorId(verifiedFactors[0].id);
+        if (!signedOutRef.current) {
+          setMfaCheckPending(false);
         }
       }
     } catch (err) {
       console.error('Error checking MFA status:', err);
-    } finally {
-      if (!mfaCancelledRef.current) {
-        setMfaCheckPending(false);
+      if (!signedOutRef.current) {
+        await forceSignOut();
       }
     }
   };
 
   // Start MFA enrollment process
   const startMfaEnrollment = async () => {
-    try {
-      // Check if cancelled before starting
-      if (mfaCancelledRef.current) {
-        console.log('MFA enrollment cancelled before start');
-        return;
-      }
+    if (signedOutRef.current) return;
 
-      console.log('Starting MFA enrollment...');
-      // Use a unique friendly name to avoid conflicts
+    try {
       const friendlyName = `Authenticator-${Date.now()}`;
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: 'totp',
         friendlyName
       });
 
-      // Check if cancelled after enroll
-      if (mfaCancelledRef.current) {
-        console.log('MFA enrollment cancelled after enroll call');
-        return;
-      }
+      if (signedOutRef.current) return;
 
       if (error) {
         console.error('MFA enrollment error:', error);
@@ -231,6 +202,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Force sign out and reset everything
+  const forceSignOut = async () => {
+    signedOutRef.current = true;
+    resetAuthState();
+    clearSupabaseCache();
+    try {
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch {
+      // ignore errors
+    }
+  };
+
   // Complete MFA enrollment with verification code
   const completeMfaEnrollment = async (code: string): Promise<{ error: string | null }> => {
     if (!enrollmentData) {
@@ -238,7 +221,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Challenge the factor first
       const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({
         factorId: enrollmentData.factorId
       });
@@ -247,7 +229,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: challengeError.message };
       }
 
-      // Verify the challenge with the code
       const { error: verifyError } = await supabase.auth.mfa.verify({
         factorId: enrollmentData.factorId,
         challengeId: challengeData.id,
@@ -261,6 +242,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Success - clear enrollment state
       setMfaEnrollmentRequired(false);
       setEnrollmentData(null);
+      setMfaCheckPending(false);
 
       // Fetch user profile
       const { data: { session } } = await supabase.auth.getSession();
@@ -281,7 +263,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Create a challenge
       const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({
         factorId: mfaFactorId
       });
@@ -290,7 +271,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: challengeError.message };
       }
 
-      // Verify the challenge
       const { error: verifyError } = await supabase.auth.mfa.verify({
         factorId: mfaFactorId,
         challengeId: challengeData.id,
@@ -319,23 +299,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Cancel MFA and sign out
   const cancelMfa = async () => {
-    console.log('Cancelling MFA...');
-    // Set cancellation flag immediately to stop any pending MFA operations
-    mfaCancelledRef.current = true;
-
-    // Clear all state immediately
-    resetAuthState();
-
-    // Clear Supabase localStorage cache
-    clearSupabaseCache();
-
-    // Sign out globally to invalidate session on server
-    try {
-      await supabase.auth.signOut({ scope: 'global' });
-      console.log('Sign out completed');
-    } catch (err) {
-      console.error('Error signing out:', err);
-    }
+    console.log('Cancelling MFA - signing out');
+    await forceSignOut();
   };
 
   useEffect(() => {
@@ -343,42 +308,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const initAuth = async () => {
       try {
-        // Reset cancellation flag on init
-        mfaCancelledRef.current = false;
+        signedOutRef.current = false;
+        mfaHandledRef.current = false;
 
         const { data: { session } } = await supabase.auth.getSession();
         console.log('Session check:', session ? 'has session' : 'no session');
 
-        if (!isMounted) return;
-
-        // Check if cancelled while waiting for session
-        if (mfaCancelledRef.current) {
-          console.log('Init cancelled');
-          return;
-        }
+        if (!isMounted || signedOutRef.current) return;
 
         if (session?.user) {
           // Check MFA assurance level
           const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
           const currentLevel = aalData?.currentLevel;
+          const nextLevel = aalData?.nextLevel;
 
-          console.log('Current AAL:', currentLevel);
+          console.log('Current AAL:', currentLevel, 'Next AAL:', nextLevel);
 
-          // Check if cancelled while waiting for AAL
-          if (mfaCancelledRef.current) {
-            console.log('Init cancelled after AAL check');
-            return;
-          }
+          if (!isMounted || signedOutRef.current) return;
 
           if (currentLevel === 'aal2') {
-            // Fully authenticated with MFA
+            // Fully authenticated with MFA - go to dashboard
             setUserFromSession(session);
             fetchUserProfileAsync(session.user.email || '');
-          } else {
-            // Need to check MFA status - set pending BEFORE setting user
-            setMfaCheckPending(true);
+            mfaHandledRef.current = true;
+          } else if (nextLevel === 'aal2' || nextLevel === 'aal1') {
+            // Session exists but MFA not verified yet
             setUserFromSession(session);
-            await checkMfaStatus();
+            mfaHandledRef.current = true;
+            await handleMfaForSession();
+          } else {
+            // No MFA requirement detected - just log in
+            setUserFromSession(session);
+            fetchUserProfileAsync(session.user.email || '');
+            mfaHandledRef.current = true;
           }
         } else {
           setLoading(false);
@@ -392,26 +354,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth event:', event, 'cancelled:', mfaCancelledRef.current);
+      console.log('Auth event:', event, 'signedOut:', signedOutRef.current, 'mfaHandled:', mfaHandledRef.current);
       if (!isMounted) return;
 
-      // If MFA was cancelled, ignore SIGNED_IN events until we see SIGNED_OUT
-      if (mfaCancelledRef.current && event === 'SIGNED_IN') {
-        console.log('Ignoring SIGNED_IN event - MFA was cancelled');
+      // If we explicitly signed out, ignore all events except from a new signIn call
+      if (signedOutRef.current) {
+        console.log('Ignoring event - user signed out');
         return;
       }
 
       if (event === 'SIGNED_IN' && session?.user) {
-        // Set pending BEFORE setting user to prevent race condition
-        setMfaCheckPending(true);
-        setUserFromSession(session);
-        // Check MFA status after sign in
-        await checkMfaStatus();
+        // Only process if we haven't already handled MFA (avoids duplicate handling from initAuth)
+        if (!mfaHandledRef.current) {
+          mfaHandledRef.current = true;
+          setUserFromSession(session);
+          await handleMfaForSession();
+        }
+      } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+        // Token refresh - just update session, don't re-trigger MFA
+        console.log('Token refreshed - session still valid');
+        // If we're already fully authenticated, just keep going
       } else if (event === 'SIGNED_OUT') {
         console.log('SIGNED_OUT event received');
-        // Reset cancellation flag on sign out
-        mfaCancelledRef.current = false;
-        // Clear all auth state
+        mfaHandledRef.current = false;
         resetAuthState();
       }
     });
@@ -424,8 +389,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      // Reset cancellation flag for new sign-in attempt
-      mfaCancelledRef.current = false;
+      // Reset flags for new sign-in attempt
+      signedOutRef.current = false;
+      mfaHandledRef.current = false;
 
       // Set MFA check pending before attempting sign in
       setMfaCheckPending(true);
@@ -440,7 +406,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: error.message };
       }
 
-      // Don't clear mfaCheckPending here - let checkMfaStatus handle it
+      // Don't clear mfaCheckPending here - let handleMfaForSession handle it
       return { error: null };
     } catch (error) {
       setMfaCheckPending(false);
@@ -450,22 +416,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     console.log('Signing out...');
-    // Set cancellation flag to stop any pending MFA operations
-    mfaCancelledRef.current = true;
-
-    // Clear all state
-    resetAuthState();
-
-    // Clear Supabase localStorage cache
-    clearSupabaseCache();
-
-    // Sign out globally
-    try {
-      await supabase.auth.signOut({ scope: 'global' });
-      console.log('Sign out completed');
-    } catch (err) {
-      console.error('Error signing out:', err);
-    }
+    await forceSignOut();
   };
 
   // Permission helpers - only grant permissions if MFA is complete
